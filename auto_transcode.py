@@ -75,7 +75,7 @@ import traceback
 
 # Debug mode - writes script's activities (but not ffmpeg output) to log files.
 # CAUTION: logs can get big.
-debug_mode = False
+debug_mode = True
 
 # Write ffmpeg output to log files.
 # CAUTION: logs can get big.
@@ -257,6 +257,35 @@ if len(sys.argv) > 1:
 
             # Set the description for later display.
             trans_mode = "ProRes 4444 video, 24-bit PCM audio, MOV container"
+        
+        
+        # Apple ProRes 422 transcode for EVS
+        elif argument.lower() == "-prores422":
+            # These settings are for transcoding edited videos into a popular
+            # working format for professional video editing. The files can be
+            # huge, but the resulting quality is about as good as it gets.
+            cmdline = [
+                          #"%FFMPEG%", # Required for obvious reasons and must be #1
+                          "-y", # Assume "yes" to prompts, e.g., overwrite warning
+                          "-progress -", # Output progress info (and yes that second hyphen is REQUIRED)
+                          "-nostats", # Don't output a bunch of statistical info on the file
+                          "-hwaccel auto", # Hardware acceleration enabled, auto-detect
+                          "-i %SOURCEFILE%", # Name of file to transcode
+                          "-pix_fmt yuv422p10le", # Set pixel format to 4:2:2 YUV, 10 bits per pixel
+                          "-c:v prores_ks", # Set codec to ProRes
+                          "-profile:v 2", # standard profile
+                          "-c:a pcm_s24le", # Transcode audio to 24-bit PCM (LE byte order)
+                        "-vf scale=1920:1080,fps=50",
+                        # "-flags +ildct+ilme -top 1",
+                          "-f %NEWEXT%", # Transcode into container based on "new_ext" variable
+                          "%DESTFILE%" # Name and path for trandcode output (should be last)
+                      ]
+
+            # Set the extension to MOV.
+            new_ext = "mov"
+
+            # Set the description for later display.
+            trans_mode = "ProRes 422 video, 24-bit PCM audio, MOV container"
 
 
         # Plex "nearly universal" HD (1080p) H.264 transcode
@@ -1014,8 +1043,8 @@ def file_is_in_use(file):
             shell=True,
         )
         file_users = is_file_open.stdout.read().decode("utf8", errors="replace").strip()
-
-        return (file_users != "")
+        write_log(file_users)
+        #return (file_users != "")
 
 
 # Start the log...
